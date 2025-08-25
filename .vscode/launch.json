@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "UVicorn",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/app",
+            "args": [
+                "app.asgi:application", // Replace with your actual FastAPI application path
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true ,// Optional: Set to false to debug libraries,
+            "preLaunchTask": "check",
+        }
+    ]
+}

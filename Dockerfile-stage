@@ -1,0 +1,73 @@
+FROM python:3.13.0-bookworm
+
+
+WORKDIR /app
+
+
+COPY ../app /app
+COPY ../requirements.txt /app
+
+
+RUN apt-get update &&     apt-get install -y         libsm6         libxext6         libxrender-dev         libgl1-mesa-glx         libglib2.0-0         libgtk2.0-dev         curl 
+
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+
+ENV PATH="/root/.cargo/bin:/Users/andrea/.rbenv/shims:/opt/homebrew/Cellar/openssl@3/3.3.1/include:/opt/homebrew/Cellar/openssl@3/3.3.1/lib:/opt/homebrew/opt/jpeg/bin:/opt/homebrew/opt/dotnet@6/bin:/Users/andrea/Library/Android/sdk:/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home:/Users/andrea/flutter/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/usr/local/share/dotnet:~/.dotnet/tools:/Users/andrea/Library/Android/sdk/cmdline-tools/latest/bin:/Users/andrea/Library/Android/sdk/platform-tools:/Users/andrea/Library/Android/sdk/emulator:/opt/homebrew/opt/libpq/bin"
+
+
+RUN pip --version
+
+
+RUN pip install --upgrade pip
+
+
+RUN pip install -r requirements.txt
+
+ENV ENV_PATH .env.stage
+
+
+CMD ["uvicorn", "app.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# Usa l'immagine base di Python
+FROM python:3.13.0-bookworm
+
+# Setta la directory di lavoro
+WORKDIR /app
+
+# Copia l'applicazione e i requisiti
+COPY ../app /app
+COPY ../requirements.txt /app
+
+# Installa le dipendenze di sistema richieste e Rust
+RUN apt-get update && \
+    apt-get install -y \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
+        libgl1 \
+        libglx-mesa0 \
+        libglib2.0-0 \
+        libgtk2.0-dev \
+        curl 
+
+# Installa Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Aggiungi Rust alla variabile di ambiente
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Installa le dipendenze di Python
+RUN pip --version
+
+# Aggiorna pip
+RUN pip install --upgrade pip
+
+# Installa i requisiti
+RUN pip install -r requirements.txt
+
+ENV ENV_PATH .env.stage
+
+# Comando di avvio
+CMD ["uvicorn", "app.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,0 +1,26 @@
+{
+    "name": "Tempalte Microservice Python 3",
+    "dockerComposeFile": ["../docker-compose.yml"],
+    "service": "app",
+    "workspaceFolder": "/workspaces/microservice_template",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "mikoz.black-py",
+                "ms-python.mypy-type-checker",
+                "baterson.copy-django-model-fields",
+                "ms-python.black-formatter",
+                "cqh.surround-python",
+                "gruntfuggly.todo-tree",
+                "eamodio.gitlens",
+                "charliermarsh.ruff",
+                "tamasfe.even-better-toml",
+                "esbenp.prettier-vscode",
+                "ms-python.debugpy"
+            ]
+        }
+    },
+    "postCreateCommand": "./.devcontainer/init.sh",
+    "remoteUser": "vscode"
+}

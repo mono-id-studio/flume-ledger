@@ -1,0 +1,13 @@
+{
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "terminal.integrated.cwd": "${workspaceFolder}/app",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/app"
+    ],
+    "[github-actions-workflow]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    }
+}

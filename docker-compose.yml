@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    ports:
+      - 40000:8000
+    volumes:
+      - .:/workspaces/microservice_template:cached
+    command: sleep infinity 

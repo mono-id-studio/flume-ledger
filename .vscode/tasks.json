@@ -1,0 +1,44 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "mypy",
+            "command": "mypy",
+            "args": [
+                "--config-file",
+                "${workspaceFolder}/mypy.ini",
+                "."
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            }
+        },
+        {
+            "label": "ruff-check",
+            "command": "ruff",
+            "args": ["check", "."],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            }
+        },
+        {
+            "label": "ruff-format",
+            "command": "ruff",
+            "args": [
+                "format",
+                "."
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            }
+        },
+        {
+            "label": "check",
+            "dependsOn": ["ruff-format","ruff-check", "mypy"],
+            "dependsOrder": "sequence",
+            "detail": "Checking code with mypy and ruff"
+        }
+    ]
+}
