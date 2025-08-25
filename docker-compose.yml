@@ -7,5 +7,5 @@ services:
     ports:
       - 40000:8000
     volumes:
-      - .:/workspaces/microservice_template:cached
+      - .:/workspaces/flume-ledger:cached
     command: sleep infinity 

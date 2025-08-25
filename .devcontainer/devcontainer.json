@@ -2,7 +2,7 @@
     "name": "Tempalte Microservice Python 3",
     "dockerComposeFile": ["../docker-compose.yml"],
     "service": "app",
-    "workspaceFolder": "/workspaces/microservice_template",
+    "workspaceFolder": "/workspaces/flume-ledger",
     "customizations": {
         "vscode": {
             "extensions": [
