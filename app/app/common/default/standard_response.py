@@ -1,8 +1,8 @@
 from http import HTTPStatus
 import json
-from typing import Any, Generic, TypeVar
+from typing import Annotated, Any, Generic, TypeVar
 from app.common.default.utils import is_debug
-from ninja import Schema
+from ninja import Field, Schema
 from ninja.responses import Response
 
 
@@ -40,9 +40,30 @@ class StandardErrorResponse(Schema):
         encode: Encodes the response object into bytes.
     """
 
-    dev: Any | None
-    code: int
-    message: str
+    dev: Annotated[
+        Any,
+        Field(
+            description="The developer-specific error details",
+            title="Developer Details",
+            example="",
+        ),
+    ]
+    message: Annotated[
+        str,
+        Field(
+            description="The error message",
+            title="Message",
+            example="Internal server error",
+        ),
+    ]
+    code: Annotated[
+        int,
+        Field(
+            description="The error code (can be different from the HTTP status code)",
+            title="Code",
+            example=500,
+        ),
+    ]
 
     def encode(self) -> bytes:
         return json.dumps(self.dict()).encode()
