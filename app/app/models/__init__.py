@@ -1,5 +1,7 @@
-from .custom_user import CustomUser
+from .flume import RegisteredService, ServiceCapabilities, ServiceMeta
 
 __all__ = [
-    "CustomUser",
+    "RegisteredService",
+    "ServiceCapabilities",
+    "ServiceMeta",
 ]
