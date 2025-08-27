@@ -2,9 +2,9 @@
 FROM python:3.13.0-bookworm
 
 # Setta la directory di lavoro
-WORKDIR /workspaces/microservice_template
+WORKDIR /workspaces/flume-ledger
 
-ENV PYTHONPATH=/workspaces/microservice_template/app
+ENV PYTHONPATH=/workspaces/flume-ledger/app
 
 
 # Installa le dipendenze di sistema richieste e Rust

@@ -83,7 +83,7 @@ WSGI_APPLICATION = "app.wsgi.application"
 DATABASES = {"default": env.db(default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
 
 # ── Auth / User ────────────────────────────────────────────────────────────────
-AUTH_USER_MODEL = "app.CustomUser"
+# AUTH_USER_MODEL = "app.CustomUser"
 
 # ── Password validators ────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [

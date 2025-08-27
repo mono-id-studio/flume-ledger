@@ -7,7 +7,6 @@ from django.core.paginator import Paginator, EmptyPage, Page
 from datetime import date, datetime, time
 from urllib.parse import quote, unquote
 from app.models.default.base_model import BaseModel
-from app.models.custom_user import CustomUser
 
 
 def is_debug() -> bool:
@@ -69,10 +68,6 @@ def c_success(message: str):
         message (str): The message to be printed.
     """
     print(f"[SUCCESS] {message}")
-
-
-def get_user_from_request(request: HttpRequest) -> CustomUser | None:
-    return getattr(request, "auth", None)
 
 
 def get_route_param(request: HttpRequest, param_name: str) -> str | None:
