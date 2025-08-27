@@ -1,6 +1,17 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from requests import put
 from os import name
+from json import dumps
 from app.models.services import Service, ServiceInstance
 from app.schemas.req.services import RegisterRequest
+from app.schemas.res.services import (
+    ServiceInstanceSnapshot,
+    ServiceSnapshot,
+    ServiceSnapshotResponse,
+)
+from app.schemas.res.services import Capabilities
+from app.services.signer import SignService
+from django.db.models import Q
 
 
 class ServicesService:
@@ -35,8 +46,77 @@ class ServicesService:
             meta=(data.meta.dict() if data.meta else {}),
         )
 
-    def push_new_ledger_to_all_instances():
-        pass
+    def push_new_ledger_to_all_instances(self, version: int):
+        # instances UP
+        targets = list(
+            ServiceInstance.objects.filter(Q(status=ServiceInstance.Status.UP))
+        )
+        # costruisci body UNA volta
+        payload: ServiceSnapshotResponse = self.build_registry_snapshot(version)
+        body = dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
 
-    def push_new_ledger_to_one_instances(srv: Service):
-        pass
+        results = []
+        with ThreadPoolExecutor(max_workers=16) as ex:
+            futs = [
+                ex.submit(self.push_new_ledger_to_one_instances, inst, body, version)
+                for inst in targets
+            ]
+            for f in as_completed(futs):
+                results.append(f.result())
+
+        ok = sum(1 for _, code, _ in results if 200 <= code < 300)
+        fail = [r for r in results if not (200 <= r[1] < 300)]
+        # eventually schedule retry on fail
+        return {"sent": len(targets), "ok": ok, "fail": fail}
+
+    def push_new_ledger_to_one_instances(
+        inst: ServiceInstance, body_bytes: bytes, version: int
+    ):
+        url = inst.base_url.rstrip("/") + "/flume/registry"
+        sign_service = SignService()
+        headers = sign_service.signed_headers_for(inst, body_bytes)
+        headers["X-Registry-Version"] = str(version)
+        try:
+            r = put(
+                url,
+                data=body_bytes,
+                headers=headers,
+                timeout=(2, 10),
+                allow_redirects=False,
+            )
+            return (str(inst.instance_id), r.status_code, "")
+        except Exception as e:
+            return (str(inst.instance_id), 0, str(e))
+
+    def build_registry_snapshot(version: int) -> ServiceSnapshotResponse:
+        services: list[Service] = []
+        svc_qs = Service.objects.all().only(
+            "service_id", "name", "publishes", "consumes", "meta"
+        )
+        inst_qs = ServiceInstance.objects.select_related("service").only(
+            "instance_id", "service", "base_url", "status", "meta"
+        )
+        inst_by_service = {}
+        for i in inst_qs:
+            instance: ServiceInstanceSnapshot = ServiceInstanceSnapshot(
+                instance_id=str(i.instance_id),
+                base_url=i.base_url,
+                status=i.status,
+                meta=i.meta or {},
+            )
+            inst_by_service.setdefault(i.service_id, []).append(instance)
+        for s in svc_qs:
+            services.append(
+                ServiceSnapshot(
+                    service_id=str(s.service_id),
+                    name=s.name,
+                    capabilities=Capabilities(
+                        publishes=s.publishes or [],
+                        consumes=s.consumes or [],
+                    ),
+                    meta=s.meta or {},
+                    instances=inst_by_service.get(s.service_id, []),
+                )
+            )
+
+        return ServiceSnapshotResponse(version=version, services=services)
