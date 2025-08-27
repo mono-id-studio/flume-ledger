@@ -3,14 +3,14 @@ from django.http import Http404
 from ninja import NinjaAPI
 from app.common.default.parser import ORJSONParser
 from app.routes.exception_handlers import exception_handler
-from app.routes.v1.flume import v1 as flume_router
+from app.routes.v1.services import v1 as services_router
 
 v1 = NinjaAPI(
     version="1.0.0", title="Template API", docs_url="/docs/v1", parser=ORJSONParser()
 )
 
 
-v1.add_router("v1/flume", flume_router)
+v1.add_router("v1/flume", services_router)
 
 
 @v1.exception_handler(ValidationError)

@@ -39,3 +39,4 @@ class ServicesService:
         pass
 
     def push_new_ledger_to_one_instances(srv: Service):
+        pass
