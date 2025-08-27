@@ -1,17 +1,26 @@
+from app.common.default.responses import (
+    responses,
+    StandardResponse,
+)
 from ninja import Router
-from app.endpoints.v1.services import deregister_ep, register_ep
+from app.endpoints.v1.services import register_ep
 from django.http import HttpRequest
 from app.schemas.req.services import RegisterRequest
 from app.middlewares.default.pipeline import pipeline
+from app.schemas.res.services import RegisterResponse
 
-v1 = Router(tags=["Flume Services"])
+v1 = Router(tags=["Services API"])
 
 
-@v1.post("/services/register")
+@v1.post(
+    "/services/register",
+    response=responses(
+        {
+            200: StandardResponse[RegisterResponse],
+        }
+    ),
+    description="Register a new service or add a new instance to an existing service",
+    summary="Register a new service or add a new instance to an existing service",
+)
 def register(request: HttpRequest, data: RegisterRequest):
     return pipeline(request, endpoint=register_ep, data=data)
-
-
-@v1.delete("/services/{service_id}/instances/{instance_id}")
-def deregister(request: HttpRequest, service_id: str, instance_id: str):
-    return pipeline(request, endpoint=deregister_ep, data={service_id, instance_id})
