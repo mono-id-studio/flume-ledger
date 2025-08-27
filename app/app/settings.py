@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env(
     # default values
     DEBUG=(bool, False),
+    ENVIRONMENT=(str, "development"),
     SECRET_KEY=(str, "unsafe-dev-key"),  # cambia in prod!
     ALLOWED_HOSTS=(list, ["*"]),
     TIME_ZONE=(str, "UTC"),
@@ -26,8 +27,9 @@ ENV_PATH = getenv("ENV_PATH", "envs/.env")
 env.read_env(BASE_DIR / ENV_PATH)
 
 # ── Core ───────────────────────────────────────────────────────────────────────
-DEBUG = env.bool("DEBUG")
+DEBUG = env("ENVIRONMENT") == "development"
 SECRET_KEY = env("SECRET_KEY")
+ENVIRONMENT = env("ENVIRONMENT")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 

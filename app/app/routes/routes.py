@@ -4,13 +4,25 @@ from ninja import NinjaAPI
 from app.common.default.parser import ORJSONParser
 from app.routes.exception_handlers import exception_handler
 from app.routes.v1.services import v1 as services_router
+from django.conf import settings
+from app.routes.openapi import build_openapi_router
 
 v1 = NinjaAPI(
-    version="1.0.0", title="Template API", docs_url="/docs/v1", parser=ORJSONParser()
+    version="1.0.0",
+    title="Template API",
+    docs_url="/docs/v1" if settings.DEBUG else None,
+    parser=ORJSONParser(),
 )
 
 
 v1.add_router("v1/flume", services_router)
+
+if settings.ENVIRONMENT == "development":
+    v1.add_router("v1/openapi", build_openapi_router(v1, protected=False))
+elif settings.ENVIRONMENT == "production":
+    v1.add_router("v1/openapi", build_openapi_router(v1, protected=True))
+else:
+    raise ValueError(f"Invalid environment: {settings.ENVIRONMENT}")
 
 
 @v1.exception_handler(ValidationError)
