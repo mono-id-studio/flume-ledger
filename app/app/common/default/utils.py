@@ -269,3 +269,13 @@ def get_image_format_from_extension(file_extension):
 
     # Convert the file extension to lowercase for uniformity
     return image_formats.get(file_extension.lower(), "Unknown format")
+
+
+def set_if_diff(obj: Any, field: str, value: Any) -> bool:
+    """
+    Set a field on an object if the value is different from the current value.
+    """
+    if getattr(obj, field) != value:
+        setattr(obj, field, value)
+        return True
+    return False
