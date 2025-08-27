@@ -1,6 +1,6 @@
 from typing import Mapping, Tuple
 from app.models.services import Service, ServiceInstance
-from app.services.secrets import SecretsService, get_active_kid_and_token
+from app.services.secrets import SecretsService
 from time import time
 from os import urandom
 from hmac import new
@@ -8,7 +8,7 @@ from hashlib import sha256
 from base64 import b64decode
 
 
-class Signer:
+class SignerService:
     def signed_headers_for(
         self,
         instance: ServiceInstance,
@@ -20,9 +20,9 @@ class Signer:
         Returns the signed headers for the given instance and body.
         """
         service = instance.service
-        kid, token_bytes = get_active_kid_and_token(service)
+        kid, token_bytes = self.get_active_kid_and_token(service)
 
-        ts = int(time.time())
+        ts = int(time())
         nonce = urandom(16).hex()
         key = self.derive_instance_key(token_bytes, str(instance.instance_id))
         msg = (f"{method.upper()}\n{path_with_query}\n{ts}\n{nonce}\n").encode() + (
@@ -45,6 +45,8 @@ class Signer:
         Returns the active kid and token for the given service.
         """
         data = SecretsService._get_cache_for_service(service).get()
+        if data is None:
+            raise ValueError("No secrets found for service")
         kid = data["kid"]
         token = data["token"]
         token_bytes: bytes = b""

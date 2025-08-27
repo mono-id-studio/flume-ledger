@@ -1,7 +1,6 @@
-from typing import Optional, List
-from uuid import UUID
+from typing import Annotated, Optional, List
 from ninja import Schema
-from pydantic import AnyHttpUrl, constr, conint
+from pydantic import AnyHttpUrl
 
 
 # ---- nested ----
@@ -17,23 +16,21 @@ class RegisterRequestMeta(Schema):
     node_id: Optional[str] = None  # stable identifier of the node
     task_slots: Optional[int] = None  # number of tasks the node can run
     boot_id: Optional[str] = None  # changes on every reboot
-    weight: conint(ge=1, le=100) = 1  # for client-side balancing
-
-
-# ---- request ----
+    weight: Optional[int] = None  # for client-side balancing
 
 
 class RegisterRequest(Schema):
     # logical service name (not the replica)
-    service_name: constr(
-        strip_whitespace=True, min_length=1, regex=r"^[a-z][a-z0-9-_]{1,63}$"
-    )
+    service_name: str
     # where the instance listens in the internal network
     base_url: AnyHttpUrl  # es: http://10.0.1.11:8080
     # optional but recommended for heartbeat out of band
     health_url: Optional[AnyHttpUrl] = None
     # how often the client beats (the ledger will calculate TTL and M miss)
-    heartbeat_interval_sec: conint(ge=1, le=3600) = 10
+    heartbeat_interval_sec: int = 10
     capabilities: Optional[RegisterRequestCapabilities] = None
     meta: Optional[RegisterRequestMeta] = None
-    # NB: no instance_id here – the ledger generates it
+    bootstrap_secret_ref: str
+    boot_id: str
+    node_id: str
+    task_slot: int

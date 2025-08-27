@@ -1,11 +1,9 @@
-from typing import Dict, Tuple
+from typing import Dict
 from app.models.services import Service
-from django import settings
+from django.conf import settings
 from time import time
 from boto3 import client
 from json import loads
-from app.common.default.security import _CACHES
-from base64 import b64decode
 
 
 class SecretsService:
@@ -22,7 +20,7 @@ class SecretsService:
         self.name, self.ttl_s, self.region = (
             name,
             ttl_s,
-            region or settings.AWS_REGION,
+            region or settings.MS_REGION,
         )
         self._val: Dict | None = None
         self._exp = 0.0
@@ -34,18 +32,18 @@ class SecretsService:
         If the service is not in the cache, it creates a new instance and adds it to the cache.
         """
         if service.bootstrap_secret_ref not in SecretsService.CACHES:
-            _CACHES[service.bootstrap_secret_ref] = SecretsService(
+            SecretsService.CACHES[service.bootstrap_secret_ref] = SecretsService(
                 service.bootstrap_secret_ref,
                 ttl_s=service.ttl_s,
                 region=service.region,
             )
         return SecretsService.CACHES[service.bootstrap_secret_ref]
 
-    def get(self) -> Dict:
+    def get(self) -> dict | None:
         """
         Returns the secrets for the given service.
         """
-        now = time.time()
+        now = time()
         if self._val is None or now >= self._exp:
             sm = client("secretsmanager", region_name=self.region)
             resp = sm.get_secret_value(SecretId=self.name)

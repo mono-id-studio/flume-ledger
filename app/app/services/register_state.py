@@ -1,4 +1,4 @@
-from app.models.services import RegistryState
+from app.models.register import RegistryState
 
 
 class RegistryStateService:

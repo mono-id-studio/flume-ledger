@@ -1,7 +1,11 @@
-from .flume import RegisteredService, ServiceCapabilities, ServiceMeta
+from .events import EventDefinition, Subscription
+from .register import RegistryState
+from .services import Service, ServiceInstance
 
 __all__ = [
-    "RegisteredService",
-    "ServiceCapabilities",
-    "ServiceMeta",
+    "EventDefinition",
+    "Subscription",
+    "RegistryState",
+    "Service",
+    "ServiceInstance",
 ]

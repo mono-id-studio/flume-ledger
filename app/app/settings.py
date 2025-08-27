@@ -116,3 +116,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 60 * 60 * 24
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+
+# ── MICROSERVICES ───────────────────────────────────────────────────────────────────────
+MS_REGION = env("MS_REGION", default="eu-central-1")

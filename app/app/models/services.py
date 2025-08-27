@@ -26,6 +26,8 @@ class Service(BaseModel):
     publishes = JSONField(default=list)  # es: ["order.created", "invoice.issued"]
     consumes = JSONField(default=list)  # es: ["customer.updated"]
     meta = JSONField(default=dict)  # es: {"owner":"team-foo"}
+    region = CharField(max_length=120, default="eu-central-1")
+    ttl_s = IntegerField(default=300)
 
     bootstrap_secret_ref = CharField(max_length=255)
     # For audit: hash of the token (to know if it has changed) – NOT the token in clear

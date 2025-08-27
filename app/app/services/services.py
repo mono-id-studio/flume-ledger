@@ -1,5 +1,6 @@
 from asyncio import gather
-from httpx import AsyncClient, put
+from typing import Dict
+from httpx import AsyncClient
 from json import dumps
 from app.models.services import Service, ServiceInstance
 from app.schemas.req.services import RegisterRequest
@@ -9,7 +10,7 @@ from app.schemas.res.services import (
     ServiceSnapshotResponse,
 )
 from app.schemas.res.services import Capabilities
-from app.services.signer import SignService
+from app.services.signer import SignerService
 from django.db.models import Q
 
 
@@ -17,28 +18,30 @@ class ServicesService:
     def get_or_create_service(
         self, service_name: str, bootstrap_secret_ref: str
     ) -> Service:
-        return Service.objects.get_or_create(
+        obj, _ = Service.objects.get_or_create(
             name=service_name, defaults={"bootstrap_secret_ref": bootstrap_secret_ref}
         )
+        return obj
 
     def get_same_instance_after_reboot(
-        srv: Service, node_id: str, task_slot: int
-    ) -> ServiceInstance:
+        self, srv: Service, node_id: str, task_slot: int
+    ) -> ServiceInstance | None:
         return ServiceInstance.objects.filter(
             service=srv,
             node_id=node_id,
             task_slot=task_slot,
         ).first()
 
-    def create_service_instance(srv: Service, data: RegisterRequest) -> ServiceInstance:
+    def create_service_instance(
+        self, srv: Service, data: RegisterRequest
+    ) -> ServiceInstance:
         return ServiceInstance.objects.create(
             service=srv,
-            name=data.service_name,
-            node_id=data.meta.node_id,
-            task_slot=data.meta.task_slot,
-            boot_id=data.meta.boot_id,
-            base_url=data.base_url,
-            health_url=data.health_url,
+            node_id=data.node_id,
+            task_slot=data.task_slot,
+            boot_id=data.boot_id,
+            base_url=str(data.base_url),
+            health_url=str(data.health_url),
             heartbeat_interval_sec=data.heartbeat_interval_sec,
             status=ServiceInstance.Status.UP,
             push_kid=srv.active_kid,
@@ -55,7 +58,7 @@ class ServicesService:
         body = dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
 
         results = []
-        async with AsyncClient(timeout=(2, 10), follow_redirects=False) as client:
+        async with AsyncClient(timeout=10, follow_redirects=False) as client:
             tasks = [
                 self.push_new_ledger_to_one_instances(client, inst, body, version)
                 for inst in targets
@@ -66,34 +69,41 @@ class ServicesService:
         fail = [r for r in results if not (200 <= r[1] < 300)]
         return (len(targets), ok, fail)
 
-    def push_new_ledger_to_one_instances(
-        inst: ServiceInstance, body_bytes: bytes, version: int
-    ):
+    async def push_new_ledger_to_one_instances(
+        self,
+        client: AsyncClient,
+        inst: ServiceInstance,
+        body_bytes: bytes,
+        version: int,
+    ) -> tuple[str, int, str]:
         url = inst.base_url.rstrip("/") + "/flume/registry"
-        sign_service = SignService()
-        headers = sign_service.signed_headers_for(inst, body_bytes)
+        sign_service = SignerService()
+        headers = sign_service.signed_headers_for(
+            inst, "PUT", "/flume/registry", body_bytes
+        )
+        headers = dict(headers)
         headers["X-Registry-Version"] = str(version)
         try:
-            r = put(
+            r = await client.put(
                 url,
-                data=body_bytes,
+                content=body_bytes,
                 headers=headers,
-                timeout=(2, 10),
-                allow_redirects=False,
+                timeout=10,
+                follow_redirects=False,
             )
             return (str(inst.instance_id), r.status_code, "")
         except Exception as e:
             return (str(inst.instance_id), 0, str(e))
 
-    def build_registry_snapshot(version: int) -> ServiceSnapshotResponse:
-        services: list[Service] = []
+    def build_registry_snapshot(self, version: int) -> ServiceSnapshotResponse:
+        services: list[ServiceSnapshot] = []
         svc_qs = Service.objects.all().only(
             "service_id", "name", "publishes", "consumes", "meta"
         )
         inst_qs = ServiceInstance.objects.select_related("service").only(
             "instance_id", "service", "base_url", "status", "meta"
         )
-        inst_by_service = {}
+        inst_by_service: Dict = {}
         for i in inst_qs:
             instance: ServiceInstanceSnapshot = ServiceInstanceSnapshot(
                 instance_id=str(i.instance_id),
