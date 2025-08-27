@@ -1,6 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from requests import put
-from os import name
+from asyncio import gather
+from httpx import AsyncClient, put
 from json import dumps
 from app.models.services import Service, ServiceInstance
 from app.schemas.req.services import RegisterRequest
@@ -46,7 +45,7 @@ class ServicesService:
             meta=(data.meta.dict() if data.meta else {}),
         )
 
-    def push_new_ledger_to_all_instances(self, version: int):
+    async def push_new_ledger_to_all_instances(self, version: int):
         # instances UP
         targets = list(
             ServiceInstance.objects.filter(Q(status=ServiceInstance.Status.UP))
@@ -56,18 +55,16 @@ class ServicesService:
         body = dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
 
         results = []
-        with ThreadPoolExecutor(max_workers=16) as ex:
-            futs = [
-                ex.submit(self.push_new_ledger_to_one_instances, inst, body, version)
+        async with AsyncClient(timeout=(2, 10), follow_redirects=False) as client:
+            tasks = [
+                self.push_new_ledger_to_one_instances(client, inst, body, version)
                 for inst in targets
             ]
-            for f in as_completed(futs):
-                results.append(f.result())
+            results = await gather(*tasks, return_exceptions=False)
 
         ok = sum(1 for _, code, _ in results if 200 <= code < 300)
         fail = [r for r in results if not (200 <= r[1] < 300)]
-        # eventually schedule retry on fail
-        return {"sent": len(targets), "ok": ok, "fail": fail}
+        return (len(targets), ok, fail)
 
     def push_new_ledger_to_one_instances(
         inst: ServiceInstance, body_bytes: bytes, version: int
