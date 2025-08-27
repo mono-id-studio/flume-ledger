@@ -18,7 +18,7 @@
         {
             "label": "ruff-check",
             "command": "ruff",
-            "args": ["check", "."],
+            "args": ["check", ".", "--fix"],
             "options": {
                 "cwd": "${workspaceFolder}/app"
             }
