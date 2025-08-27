@@ -33,6 +33,9 @@ class RegisterRequestMeta(Schema):
     ] = None
 
 
+# ---- top level ----
+
+
 class RegisterRequest(Schema):
     # logical service name (not the replica)
     service_name: Annotated[
