@@ -1,7 +1,7 @@
 from typing import Mapping, Tuple
 from app.models.services import InboundNounce, Service, ServiceInstance
-from app.services.services import ServicesProtocol
-from app.services.secrets import SecretsProtocol
+from app.services.services import ServicesServiceProtocol
+from app.services.secrets import SecretsServiceProtocol
 from time import time
 from os import urandom
 from hmac import new, compare_digest
@@ -10,7 +10,7 @@ from base64 import b64decode
 from typing import Protocol
 
 
-class SignerProtocol(Protocol):
+class SignerServiceProtocol(Protocol):
     def signed_headers_for(
         self,
         instance: ServiceInstance,
@@ -41,7 +41,7 @@ class SignerProtocol(Protocol):
 
 
 class SignerService:
-    def __init__(self, secrets: SecretsProtocol):
+    def __init__(self, secrets: SecretsServiceProtocol):
         self.secrets = secrets
 
     def signed_headers_for(

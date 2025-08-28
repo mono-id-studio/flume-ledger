@@ -3,7 +3,7 @@ from jwt import encode, decode
 from datetime import datetime, timedelta, UTC
 
 
-class CustomUserProtocol(Protocol):
+class CustomUserServiceProtocol(Protocol):
     def generate_jwt_token(self, user_id: int) -> str: ...
 
     def generate_refresh_jwt_token(self, user_id: int) -> str: ...

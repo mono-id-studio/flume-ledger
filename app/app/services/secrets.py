@@ -7,7 +7,7 @@ from json import loads
 from typing import Protocol
 
 
-class SecretsProtocol(Protocol):
+class SecretsServiceProtocol(Protocol):
     def get(self, service: Service) -> dict | None: ...
 
 

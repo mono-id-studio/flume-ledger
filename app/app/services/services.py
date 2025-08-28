@@ -10,13 +10,13 @@ from app.schemas.res.services import (
     ServiceSnapshotResponse,
 )
 from app.schemas.res.services import Capabilities
-from app.services.signer import SignerProtocol
-from app.services.secrets import SecretsProtocol
+from app.services.signer import SignerServiceProtocol
+from app.services.secrets import SecretsServiceProtocol
 from django.db.models import Q
 from typing import Protocol
 
 
-class ServicesProtocol(Protocol):
+class ServicesServiceProtocol(Protocol):
     def push_new_ledger_to_all_instances(
         self, version: int
     ) -> tuple[int, int, list[tuple[str, int, str]]]: ...
@@ -53,7 +53,7 @@ class ServicesProtocol(Protocol):
 
 
 class ServicesService:
-    def __init__(self, secrets: SecretsProtocol, signer: SignerProtocol):
+    def __init__(self, secrets: SecretsServiceProtocol, signer: SignerServiceProtocol):
         self.secrets = secrets
         self.signer = signer
 

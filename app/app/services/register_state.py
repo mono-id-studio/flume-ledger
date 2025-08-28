@@ -2,7 +2,7 @@ from app.models.register import RegistryState
 from typing import Protocol
 
 
-class RegistryStateProtocol(Protocol):
+class RegistryStateServiceProtocol(Protocol):
     def maybe_bump(self, changed: bool) -> int: ...
 
 
