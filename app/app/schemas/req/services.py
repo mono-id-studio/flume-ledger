@@ -102,3 +102,5 @@ class RegisterRequest(Schema):
     boot_id: Annotated[str, Field(examples=["boot-1", "boot-2"])]
     node_id: Annotated[str, Field(examples=["node-1", "node-2"])]
     task_slot: Annotated[int, Field(examples=[1, 2])]
+    ttl_s: Annotated[int, Field(examples=[10, 20])]
+    region: Annotated[str, Field(examples=["us-east-1", "eu-central-1"])]

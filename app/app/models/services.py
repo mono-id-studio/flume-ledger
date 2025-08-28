@@ -90,7 +90,7 @@ class ServiceInstance(BaseModel):
         return f"{self.service.name}@{self.base_url}"
 
 
-class NonceSeen(BaseModel):
+class InboundNounce(BaseModel):
     service_instance = ForeignKey(
         ServiceInstance, on_delete=CASCADE, related_name="nonces"
     )

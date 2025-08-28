@@ -4,6 +4,11 @@ from django.conf import settings
 from time import time
 from boto3 import client
 from json import loads
+from typing import Protocol
+
+
+class SecretsProtocol(Protocol):
+    def get(self, service: Service) -> dict | None: ...
 
 
 class SecretsService:
@@ -39,7 +44,7 @@ class SecretsService:
             )
         return SecretsService.CACHES[service.bootstrap_secret_ref]
 
-    def get(self) -> dict | None:
+    def get(self, service: Service) -> dict | None:
         """
         Returns the secrets for the given service.
         """

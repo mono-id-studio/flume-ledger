@@ -2,6 +2,8 @@ from app.common.default.utils import set_if_diff
 from app.models.services import ServiceInstance
 from app.services.services import ServicesService
 from app.services.register_state import RegistryStateService
+from app.services.secrets import SecretsService
+from app.services.signer import SignerService
 from django.http import HttpRequest
 from app.common.default.standard_response import standard_error, standard_response
 from app.common.default.types import EndPointResponse
@@ -14,7 +16,15 @@ from django.conf import settings
 def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse:
     try:
         with atomic():
-            service_svc = ServicesService()
+            secrets_svc = SecretsService(
+                name=data.service_name,
+                ttl_s=data.ttl_s,
+                region=data.region,
+            )
+            signer_svc = SignerService(
+                secrets=secrets_svc,
+            )
+            service_svc = ServicesService(secrets=secrets_svc, signer=signer_svc)
             svc = service_svc.get_or_create_service(
                 data.service_name, data.bootstrap_secret_ref
             )

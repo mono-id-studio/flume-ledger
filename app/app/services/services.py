@@ -10,11 +10,53 @@ from app.schemas.res.services import (
     ServiceSnapshotResponse,
 )
 from app.schemas.res.services import Capabilities
-from app.services.signer import SignerService
+from app.services.signer import SignerProtocol
+from app.services.secrets import SecretsProtocol
 from django.db.models import Q
+from typing import Protocol
+
+
+class ServicesProtocol(Protocol):
+    def push_new_ledger_to_all_instances(
+        self, version: int
+    ) -> tuple[int, int, list[tuple[str, int, str]]]: ...
+
+    def build_registry_snapshot(self, version: int) -> ServiceSnapshotResponse: ...
+
+    def push_new_ledger_to_one_instances(
+        self,
+        client: AsyncClient,
+        inst: ServiceInstance,
+        body_bytes: bytes,
+        version: int,
+    ) -> tuple[str, int, str]: ...
+
+    def get_or_create_service(
+        self, service_name: str, bootstrap_secret_ref: str
+    ) -> Service: ...
+
+    def get_service_instance_by_id(
+        self, instance_id: str
+    ) -> ServiceInstance | None: ...
+
+    def get_same_instance_after_reboot(
+        self, srv: Service, node_id: str, task_slot: int
+    ) -> ServiceInstance | None: ...
+
+    def create_service_instance(
+        self, srv: Service, data: RegisterRequest
+    ) -> ServiceInstance: ...
+
+    def get_or_create_service_instance(
+        self, srv: Service, data: RegisterRequest
+    ) -> ServiceInstance: ...
 
 
 class ServicesService:
+    def __init__(self, secrets: SecretsProtocol, signer: SignerProtocol):
+        self.secrets = secrets
+        self.signer = signer
+
     def get_or_create_service(
         self, service_name: str, bootstrap_secret_ref: str
     ) -> Service:
@@ -22,6 +64,9 @@ class ServicesService:
             name=service_name, defaults={"bootstrap_secret_ref": bootstrap_secret_ref}
         )
         return obj
+
+    def get_service_instance_by_id(self, instance_id: str) -> ServiceInstance | None:
+        return ServiceInstance.objects.get(instance_id=instance_id)
 
     def get_same_instance_after_reboot(
         self, srv: Service, node_id: str, task_slot: int
@@ -77,8 +122,7 @@ class ServicesService:
         version: int,
     ) -> tuple[str, int, str]:
         url = inst.base_url.rstrip("/") + "/flume/registry"
-        sign_service = SignerService()
-        headers = sign_service.signed_headers_for(
+        headers = self.signer.signed_headers_for(
             inst, "PUT", "/flume/registry", body_bytes
         )
         headers = dict(headers)

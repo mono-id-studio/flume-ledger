@@ -1,6 +1,16 @@
-from typing import cast
+from typing import Protocol, cast
 from jwt import encode, decode
 from datetime import datetime, timedelta, UTC
+
+
+class CustomUserProtocol(Protocol):
+    def generate_jwt_token(self, user_id: int) -> str: ...
+
+    def generate_refresh_jwt_token(self, user_id: int) -> str: ...
+
+    def verify_jwt_token(self, token: str) -> dict: ...
+
+    def verify_refresh_jwt_token(self, token: str) -> dict: ...
 
 
 class CustomUserService:
