@@ -42,7 +42,7 @@ def verify_call(request: HttpRequest, data: Any, next: NextPipe) -> EndPointResp
             dev="Service instance not found",
         )
     service = instance.service
-    ok, msg = signer_svc.verify_client_call(
+    ok, msg = signer_svc.instance_verification(
         service=service,
         ts=ts,
         nonce=nonce,
