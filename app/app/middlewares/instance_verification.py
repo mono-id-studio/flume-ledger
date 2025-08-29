@@ -12,7 +12,9 @@ from app.services.secrets import SecretsService
 from app.services.signer import SignerService
 
 
-def verify_call(request: HttpRequest, data: Any, next: NextPipe) -> EndPointResponse:
+def instance_verification(
+    request: HttpRequest, data: Any, next: NextPipe
+) -> EndPointResponse:
     """
     Resolve a sequence of route handlers.
     """

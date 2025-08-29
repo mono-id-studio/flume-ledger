@@ -69,10 +69,10 @@ class ServicesService:
         return ServiceInstance.objects.get(instance_id=instance_id)
 
     def get_same_instance_after_reboot(
-        self, srv: Service, node_id: str, task_slot: int
+        self, service: Service, node_id: str, task_slot: int
     ) -> ServiceInstance | None:
         return ServiceInstance.objects.filter(
-            service=srv,
+            service=service,
             node_id=node_id,
             task_slot=task_slot,
         ).first()
