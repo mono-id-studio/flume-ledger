@@ -24,7 +24,11 @@ class SignerServiceProtocol(Protocol):
 
     def verify_ts_window(self, ts: int, ts_window: int = 300) -> bool: ...
 
-    def verify_client_call(
+    def bootstrap_verification(
+        self, token: str, ts: int, nonce: str, kid: str, signature: str
+    ) -> tuple[bool, str]: ...
+
+    def instance_verification(
         self,
         service: Service,
         ts: int,
@@ -103,7 +107,7 @@ class SignerService:
         """
         return abs(time() - ts) <= ts_window
 
-    def verify_client_call(
+    def instance_verification(
         self,
         service: Service,
         ts: int,
@@ -161,3 +165,13 @@ class SignerService:
                 ok = compare_digest(exp2, sig)
 
         return ok, "ok" if ok else "bad signature"
+
+    def bootstrap_verification(
+        self,
+        token: str,
+        ts: int,
+        nonce: str,
+        kid: str,
+        signature: str,
+    ) -> tuple[bool, str]:
+        return True, "ok"

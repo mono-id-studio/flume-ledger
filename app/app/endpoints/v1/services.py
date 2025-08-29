@@ -25,7 +25,7 @@ def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse
                 secrets=secrets_svc,
             )
             service_svc = ServicesService(secrets=secrets_svc, signer=signer_svc)
-            svc = service_svc.get_or_create_service(
+            service = service_svc.get_or_create_service(
                 data.service_name, data.bootstrap_secret_ref
             )
 
@@ -33,12 +33,12 @@ def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse
             inst = None
             if data.node_id and data.task_slot is not None:
                 inst = service_svc.get_same_instance_after_reboot(
-                    svc, data.node_id, data.task_slot
+                    service, data.node_id, data.task_slot
                 )
 
             created = False
             if inst is None:
-                inst = service_svc.create_service_instance(svc, data)
+                inst = service_svc.create_service_instance(service, data)
                 created = True
             else:
                 changed = False
@@ -58,7 +58,7 @@ def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse
                     inst.consecutive_miss = 0
                     changed = True
                 if changed:
-                    inst.push_kid = svc.active_kid
+                    inst.push_kid = service.active_kid
                     inst.save()
 
             # bump version only if something changed (creation or update)
@@ -72,7 +72,7 @@ def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse
             status_code=200,
             message="Flume endpoint",
             data=RegisterResponse(
-                service_id=str(svc.service_id),
+                service_id=str(service.service_id),
                 instance_id=str(inst.instance_id),  # ← importante
                 push_kid=inst.push_kid,  # ← per coerenza firme
                 lease_ttl_sec=data.heartbeat_interval_sec * 3,  # esempio
