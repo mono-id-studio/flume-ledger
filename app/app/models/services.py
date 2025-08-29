@@ -90,11 +90,31 @@ class ServiceInstance(BaseModel):
         return f"{self.service.name}@{self.base_url}"
 
 
-class InboundNounce(BaseModel):
+class InboundNonceBootstrap(BaseModel):
+    service_name = CharField(max_length=120, db_index=True)
+    nonce = CharField(max_length=64, db_index=True)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["service_name", "nonce"],
+                name="uniq_service_name_nonce",
+            ),
+        ]
+        indexes = [Index(fields=["created_at"])]
+
+
+class InboundServiceInstanceNonce(BaseModel):
     service_instance = ForeignKey(
-        ServiceInstance, on_delete=CASCADE, related_name="nonces"
+        ServiceInstance, on_delete=CASCADE, related_name="nonces", null=True, blank=True
     )
     nonce = CharField(max_length=64, db_index=True)
 
     class Meta:
-        unique_together = ("service_instance", "nonce")
+        constraints = [
+            UniqueConstraint(
+                fields=["service_instance", "nonce"],
+                name="uniq_instance_nonce",
+            ),
+        ]
+        indexes = [Index(fields=["created_at"])]
