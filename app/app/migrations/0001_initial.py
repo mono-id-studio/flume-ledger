@@ -6,139 +6,259 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='RegistryState',
+            name="RegistryState",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('pkid', models.IntegerField(default=1, editable=False, primary_key=True, serialize=False)),
-                ('registry_version', models.BigIntegerField(default=0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "pkid",
+                    models.IntegerField(
+                        default=1, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("registry_version", models.BigIntegerField(default=0)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='Service',
+            name="Service",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('service_id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(db_index=True, max_length=120, unique=True)),
-                ('publishes', models.JSONField(default=list)),
-                ('consumes', models.JSONField(default=list)),
-                ('meta', models.JSONField(default=dict)),
-                ('region', models.CharField(default='eu-central-1', max_length=120)),
-                ('ttl_s', models.IntegerField(default=300)),
-                ('bootstrap_secret_ref', models.CharField(max_length=255)),
-                ('bootstrap_token_hash', models.CharField(blank=True, max_length=128)),
-                ('active_kid', models.CharField(default='v1', max_length=32)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "service_id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("name", models.CharField(db_index=True, max_length=120, unique=True)),
+                ("publishes", models.JSONField(default=list)),
+                ("consumes", models.JSONField(default=list)),
+                ("meta", models.JSONField(default=dict)),
+                ("region", models.CharField(default="eu-central-1", max_length=120)),
+                ("ttl_s", models.IntegerField(default=300)),
+                ("bootstrap_secret_ref", models.CharField(max_length=255)),
+                ("bootstrap_token_hash", models.CharField(blank=True, max_length=128)),
+                ("active_kid", models.CharField(default="v1", max_length=32)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='ServiceInstance',
+            name="ServiceInstance",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('instance_id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('node_id', models.CharField(blank=True, max_length=64, null=True)),
-                ('task_slot', models.IntegerField(blank=True, null=True)),
-                ('boot_id', models.CharField(blank=True, max_length=64, null=True)),
-                ('base_url', models.CharField(max_length=255)),
-                ('health_url', models.CharField(max_length=255)),
-                ('heartbeat_interval_sec', models.IntegerField(default=10)),
-                ('status', models.CharField(choices=[('UP', 'Up'), ('DOWN', 'Down'), ('DRAIN', 'Drain')], default='UP', max_length=10)),
-                ('last_heartbeat_at', models.DateTimeField(blank=True, null=True)),
-                ('consecutive_miss', models.IntegerField(default=0)),
-                ('push_kid', models.CharField(default='v1', max_length=32)),
-                ('meta', models.JSONField(default=dict)),
-                ('service', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='instances', to='app.service')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "instance_id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("node_id", models.CharField(blank=True, max_length=64, null=True)),
+                ("task_slot", models.IntegerField(blank=True, null=True)),
+                ("boot_id", models.CharField(blank=True, max_length=64, null=True)),
+                ("base_url", models.CharField(max_length=255)),
+                ("health_url", models.CharField(max_length=255)),
+                ("heartbeat_interval_sec", models.IntegerField(default=10)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("UP", "Up"), ("DOWN", "Down"), ("DRAIN", "Drain")],
+                        default="UP",
+                        max_length=10,
+                    ),
+                ),
+                ("last_heartbeat_at", models.DateTimeField(blank=True, null=True)),
+                ("consecutive_miss", models.IntegerField(default=0)),
+                ("push_kid", models.CharField(default="v1", max_length=32)),
+                ("meta", models.JSONField(default=dict)),
+                (
+                    "service",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="instances",
+                        to="app.service",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='InboundNounce',
+            name="InboundNounce",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('nonce', models.CharField(db_index=True, max_length=64)),
-                ('service_instance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='nonces', to='app.serviceinstance')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("nonce", models.CharField(db_index=True, max_length=64)),
+                (
+                    "service_instance",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="nonces",
+                        to="app.serviceinstance",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='EventDefinition',
+            name="EventDefinition",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('event_key', models.CharField(db_index=True, max_length=200)),
-                ('major', models.PositiveIntegerField()),
-                ('display_name', models.CharField(blank=True, max_length=200, null=True)),
-                ('ordering_key_field', models.CharField(blank=True, max_length=120, null=True)),
-                ('delivery_modes', models.JSONField(default=list)),
-                ('payload_schema', models.JSONField()),
-                ('retention', models.JSONField(blank=True, null=True)),
-                ('notes', models.TextField(blank=True, null=True)),
-                ('attachments_policy', models.JSONField(blank=True, null=True)),
-                ('version_hash', models.CharField(db_index=True, max_length=64)),
-                ('publisher', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='events', to='app.service')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("event_key", models.CharField(db_index=True, max_length=200)),
+                ("major", models.PositiveIntegerField()),
+                (
+                    "display_name",
+                    models.CharField(blank=True, max_length=200, null=True),
+                ),
+                (
+                    "ordering_key_field",
+                    models.CharField(blank=True, max_length=120, null=True),
+                ),
+                ("delivery_modes", models.JSONField(default=list)),
+                ("payload_schema", models.JSONField()),
+                ("retention", models.JSONField(blank=True, null=True)),
+                ("notes", models.TextField(blank=True, null=True)),
+                ("attachments_policy", models.JSONField(blank=True, null=True)),
+                ("version_hash", models.CharField(db_index=True, max_length=64)),
+                (
+                    "publisher",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="events",
+                        to="app.service",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Subscription',
+            name="Subscription",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('webhook_url', models.CharField(max_length=255)),
-                ('secret_ref', models.CharField(blank=True, max_length=255, null=True)),
-                ('secret_hash', models.CharField(blank=True, max_length=128, null=True)),
-                ('filters', models.JSONField(default=dict)),
-                ('dead_letter', models.JSONField(blank=True, null=True)),
-                ('enabled', models.BooleanField(default=True)),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subscriptions', to='app.eventdefinition')),
-                ('subscriber', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subscriptions', to='app.service')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("webhook_url", models.CharField(max_length=255)),
+                ("secret_ref", models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "secret_hash",
+                    models.CharField(blank=True, max_length=128, null=True),
+                ),
+                ("filters", models.JSONField(default=dict)),
+                ("dead_letter", models.JSONField(blank=True, null=True)),
+                ("enabled", models.BooleanField(default=True)),
+                (
+                    "event",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="subscriptions",
+                        to="app.eventdefinition",
+                    ),
+                ),
+                (
+                    "subscriber",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="subscriptions",
+                        to="app.service",
+                    ),
+                ),
             ],
             options={
-                'indexes': [models.Index(fields=['subscriber'], name='app_subscri_subscri_85e441_idx'), models.Index(fields=['enabled'], name='app_subscri_enabled_a37b70_idx')],
+                "indexes": [
+                    models.Index(
+                        fields=["subscriber"], name="app_subscri_subscri_85e441_idx"
+                    ),
+                    models.Index(
+                        fields=["enabled"], name="app_subscri_enabled_a37b70_idx"
+                    ),
+                ],
             },
         ),
         migrations.AddConstraint(
-            model_name='subscription',
-            constraint=models.UniqueConstraint(fields=('event', 'subscriber'), name='uniq_subscription_event_subscriber'),
+            model_name="subscription",
+            constraint=models.UniqueConstraint(
+                fields=("event", "subscriber"),
+                name="uniq_subscription_event_subscriber",
+            ),
         ),
         migrations.AddIndex(
-            model_name='serviceinstance',
-            index=models.Index(fields=['service', 'status'], name='app_service_service_745fac_idx'),
+            model_name="serviceinstance",
+            index=models.Index(
+                fields=["service", "status"], name="app_service_service_745fac_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='serviceinstance',
-            index=models.Index(fields=['last_heartbeat_at'], name='app_service_last_he_d4253b_idx'),
+            model_name="serviceinstance",
+            index=models.Index(
+                fields=["last_heartbeat_at"], name="app_service_last_he_d4253b_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='serviceinstance',
-            index=models.Index(fields=['service', 'node_id', 'task_slot'], name='app_service_service_8f0bba_idx'),
+            model_name="serviceinstance",
+            index=models.Index(
+                fields=["service", "node_id", "task_slot"],
+                name="app_service_service_8f0bba_idx",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='serviceinstance',
-            constraint=models.UniqueConstraint(condition=models.Q(('node_id__isnull', False), ('task_slot__isnull', False)), fields=('service', 'node_id', 'task_slot'), name='uniq_instance_by_service_node_slot'),
+            model_name="serviceinstance",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(
+                    ("node_id__isnull", False), ("task_slot__isnull", False)
+                ),
+                fields=("service", "node_id", "task_slot"),
+                name="uniq_instance_by_service_node_slot",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='inboundnounce',
-            unique_together={('service_instance', 'nonce')},
+            name="inboundnounce",
+            unique_together={("service_instance", "nonce")},
         ),
         migrations.AddConstraint(
-            model_name='eventdefinition',
-            constraint=models.UniqueConstraint(fields=('publisher', 'event_key', 'major'), name='uniq_event_per_publisher_major'),
+            model_name="eventdefinition",
+            constraint=models.UniqueConstraint(
+                fields=("publisher", "event_key", "major"),
+                name="uniq_event_per_publisher_major",
+            ),
         ),
     ]
