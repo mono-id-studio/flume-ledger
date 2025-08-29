@@ -1,10 +1,7 @@
-from typing import Any
 from app.common.default.globals import (
-    MICROSERVICE_INSTANCE_NOT_FOUND,
     MICROSERVICE_INVALID_SIGNATURE,
 )
 from app.schemas.req.services import RegisterRequest
-from app.services.services import ServicesService
 from django.http import HttpRequest
 from app.common.default.standard_response import standard_error
 from app.common.default.types import EndPointResponse
