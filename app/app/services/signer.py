@@ -1,6 +1,5 @@
 from typing import Mapping, Tuple
 from app.models.services import InboundNounce, Service, ServiceInstance
-from app.services.services import ServicesServiceProtocol
 from app.services.secrets import SecretsServiceProtocol
 from time import time
 from os import urandom
