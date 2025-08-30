@@ -36,9 +36,41 @@
         },
         {
             "label": "check",
-            "dependsOn": ["ruff-format","ruff-check", "mypy"],
+            "dependsOn": ["ruff-format","ruff-check", "mypy", "update-build"],
             "dependsOrder": "sequence",
             "detail": "Checking code with mypy and ruff"
+        },
+        {
+            "label": "updat-build",
+            "command": "bash",
+            "args": ["${workspaceFolder}/version/build-update.sh"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "updat-patch",
+            "command": "bash",
+            "args": ["${workspaceFolder}/version/patch-update.sh"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "updat-minor",
+            "command": "bash",
+            "args": ["${workspaceFolder}/version/minor-update.sh"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "updat-major",
+            "command": "bash",
+            "args": ["${workspaceFolder}/version/major-update.sh"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
         }
     ]
 }
