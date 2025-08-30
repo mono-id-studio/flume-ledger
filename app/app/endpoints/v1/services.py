@@ -1,9 +1,11 @@
+from typing import cast
 from app.common.default.utils import set_if_diff
 from app.models.services import ServiceInstance
 from app.services.services import ServicesService
 from app.services.register_state import RegistryStateService
 from app.services.secrets import SecretsService
 from app.services.signer import SignerService
+from django.db import IntegrityError
 from django.http import HttpRequest
 from app.common.default.standard_response import standard_error, standard_response
 from app.common.default.types import EndPointResponse
@@ -11,20 +13,16 @@ from app.schemas.req.services import RegisterRequest
 from app.schemas.res.services import RegisterResponse
 from django.db.transaction import atomic
 from django.conf import settings
+from pydantic import AnyHttpUrl
 
 
 def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse:
     try:
         with atomic():
-            secrets_svc = SecretsService(
-                name=data.service_name,
-                ttl_s=data.ttl_s,
-                region=data.region,
-            )
             signer_svc = SignerService(
-                secrets=secrets_svc,
+                secrets=SecretsService,
             )
-            service_svc = ServicesService(secrets=secrets_svc, signer=signer_svc)
+            service_svc = ServicesService(secrets=SecretsService, signer=signer_svc)
             service = service_svc.get_or_create_service(
                 data.service_name, data.bootstrap_secret_ref
             )
@@ -35,23 +33,45 @@ def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse
                 inst = service_svc.get_same_instance_after_reboot(
                     service, data.node_id, data.task_slot
                 )
+            health_url = (
+                str(data.health_url)
+                if data.health_url is not None
+                else str(data.base_url).rstrip("/") + "/health"
+            )
 
             created = False
+            changed = False
             if inst is None:
-                inst = service_svc.create_service_instance(service, data)
-                created = True
+                try:
+                    inst = service_svc.create_service_instance(
+                        service, data, health_url
+                    )
+                    created = True
+                except IntegrityError:
+                    # race condition prevention
+                    inst = service_svc.get_same_instance_after_reboot(
+                        service, data.node_id, data.task_slot
+                    )
+                    if inst is None:
+                        return standard_error(
+                            status_code=500,
+                            message="Internal server error",
+                            code=500,
+                            dev="Race condition in the database",
+                        )
+                    created = False
             else:
                 changed = False
                 changed |= set_if_diff(inst, "base_url", data.base_url)
                 changed |= set_if_diff(
                     inst,
                     "health_url",
-                    data.health_url or (str(data.base_url).rstrip("/") + "/health"),
+                    health_url,
                 )
                 changed |= set_if_diff(
                     inst, "heartbeat_interval_sec", data.heartbeat_interval_sec
                 )
-                incoming_boot = getattr(data.meta, "boot_id", None)
+                incoming_boot = data.boot_id
                 if incoming_boot and incoming_boot != inst.boot_id:
                     inst.boot_id = incoming_boot
                     inst.status = ServiceInstance.Status.UP
@@ -62,7 +82,7 @@ def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse
                     inst.save()
 
             # bump version only if something changed (creation or update)
-            changed = created  # + eventuali changed sopra
+            changed = created or changed  # + eventuali changed sopra
             version = RegistryStateService().maybe_bump(changed)
 
         # (outside transaction) fanout of the registry, if you want

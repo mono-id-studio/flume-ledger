@@ -53,7 +53,12 @@ class ServicesServiceProtocol(Protocol):
 
 
 class ServicesService:
-    def __init__(self, secrets: SecretsServiceProtocol, signer: SignerServiceProtocol):
+    secrets: type[SecretsServiceProtocol]
+    signer: SignerServiceProtocol
+
+    def __init__(
+        self, secrets: type[SecretsServiceProtocol], signer: SignerServiceProtocol
+    ):
         self.secrets = secrets
         self.signer = signer
 
@@ -78,7 +83,7 @@ class ServicesService:
         ).first()
 
     def create_service_instance(
-        self, srv: Service, data: RegisterRequest
+        self, srv: Service, data: RegisterRequest, health_url: str
     ) -> ServiceInstance:
         return ServiceInstance.objects.create(
             service=srv,
@@ -86,7 +91,7 @@ class ServicesService:
             task_slot=data.task_slot,
             boot_id=data.boot_id,
             base_url=str(data.base_url),
-            health_url=str(data.health_url),
+            health_url=health_url,
             heartbeat_interval_sec=data.heartbeat_interval_sec,
             status=ServiceInstance.Status.UP,
             push_kid=srv.active_kid,

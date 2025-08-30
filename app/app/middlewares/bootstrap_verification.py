@@ -14,7 +14,7 @@ from app.services.secrets import SecretsService
 from app.services.signer import SignerService
 
 
-def bootstrap_verification(
+def bootstrap_verification_mw(
     request: HttpRequest, data: RegisterRequest, next: NextPipe
 ) -> EndPointResponse:
     """
