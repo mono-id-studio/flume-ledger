@@ -25,10 +25,6 @@ class SignerServiceProtocol(Protocol):
         body: bytes = b"",
     ) -> Mapping[str, str]: ...
 
-    # def signed_headers_from_client(
-    #     self, instance: ServiceInstance, method, path_q, body=b""
-    # ) -> Mapping[str, str]: ...
-
     def get_active_kid_and_token(self, service: Service) -> Tuple[str, bytes]: ...
 
     def derive_instance_key(
@@ -76,9 +72,6 @@ class SignerService:
         path_with_query: str,
         body: bytes = b"",
     ) -> Mapping[str, str]:
-        """
-        Returns the signed headers for the given instance and body.
-        """
         service = instance.service
         kid, token_bytes = self.get_active_kid_and_token(service)
 
@@ -94,16 +87,13 @@ class SignerService:
             "X-Timestamp": str(ts),
             "X-Nonce": nonce,
             "X-Signature": f"sha256={sig}",
-            "X-Key-Id": kid,  # importante per rotazioni
+            "X-Key-Id": kid,
             "X-Signed-Method": method.upper(),
             "X-Signed-Path-With-Query": path_with_query,
             "Content-Type": "application/json",
         }
 
     def get_active_kid_and_token(self, service: Service) -> Tuple[str, bytes]:
-        """
-        Returns the active kid and token for the given service.
-        """
         data = self.secrets.get_current(service)
         if data is None:
             raise ValueError("No secrets found for service")
@@ -112,15 +102,9 @@ class SignerService:
     def derive_instance_key(
         self, scope: str, token_bytes: bytes, instance_id: str
     ) -> bytes:
-        """
-        Returns the instance key for the given token and instance id.
-        """
         return new(token_bytes, (scope + ":" + instance_id).encode(), sha256).digest()
 
     def _verify_ts_window(self, ts: int, ts_window: int = 300) -> bool:
-        """
-        Returns True if the timestamp is within the window.
-        """
         return abs(time() - ts) <= ts_window
 
     def instance_verification(
@@ -128,8 +112,8 @@ class SignerService:
         service: Service,
         ts: int,
         nonce: str,
-        signature: str,  # atteso: "sha256=<hex>"
-        kid: str,  # header X-Key-Id del chiamante (può essere vuoto)
+        sig: str,  # atteso: "sha256=<hex>"
+        kid: str,  # OBBLIGATORIO (strict)
         service_instance: ServiceInstance,
         body: bytes = b"",
         method: str = "GET",
@@ -137,12 +121,10 @@ class SignerService:
         ts_window: int = 300,
     ) -> tuple[bool, str]:
         # 0) sanity
-        if not ts or not isinstance(ts, int):
+        if not (isinstance(ts, int)):
             return False, "missing timestamp"
-
         if not nonce:
             return False, "missing nonce"
-
         if not kid:
             return False, "missing kid"
 
@@ -158,50 +140,41 @@ class SignerService:
         except IntegrityError:
             return False, "replay"
 
-        # 3) formato firma: deve essere "sha256=<hex>"
-        if not (
-            isinstance(signature, str)
-            and signature[:7].lower() == "sha256="
-            and len(signature) > 7
-        ):
+        # 3) formato firma: "sha256=<hex>"
+        if not (isinstance(sig, str) and sig[:7].lower() == "sha256=" and len(sig) > 7):
             return False, "bad signature format"
-        sig_hex = signature[7:].lower()  # hexdigest è lowercase
+        sig_hex = sig[7:].lower()
 
-        # 4) normalizza i campi firmati
+        # 4) messaggio firmato
         m = (method or "GET").upper()
-        # assicurati che path includa eventuale query, es. request.get_full_path()
         p = path_q or "/"
         if not (m and p):
             return False, "missing method or path"
-        if not (ts and nonce):
-            return False, "missing timestamp or nonce"
         msg = (f"{m}\n{p}\n{ts}\n{nonce}\n").encode() + (body or b"")
 
-        # 5) recupera chiave corrente (kid, token_bytes)
+        # 5) chiavi current/prev
         cur = self.secrets.get_current(service)
         if not cur:
             return False, "no current secret"
         cur_kid, cur_token_bytes = cur
+        prev = self.secrets.get_previous(service)  # (prev_kid, prev_bytes) | None
 
-        # helper: derive client_key = HMAC(token, "client:"+instance_id)
         instance_id_str = str(service_instance.instance_id)
 
-        # 6) strategia di verifica con rotazione
-
-        prev = self.secrets.get_previous(service)  # (prev_kid, prev_tok) | None
-
-        # seleziona la chiave in base al kid
+        # 6) selezione chiave in base al KID
         if kid == cur_kid:
             key_bytes = self.derive_instance_key(
                 "client", cur_token_bytes, instance_id_str
             )
         elif prev and kid == prev[0]:
-            # opzionale: rispetta la finestra prev
-            so = self.secrets.get(service)  # SecretObject (già in cache)
+            so = self.secrets.get(service)  # SecretObject (cached)
             if so and so.accept_prev_until and datetime.now() > so.accept_prev_until:
                 return False, "prev key expired"
             key_bytes = self.derive_instance_key("client", prev[1], instance_id_str)
+        else:
+            return False, "unknown kid"
 
+        # 7) verifica HMAC
         exp_hex = new(key_bytes, msg, sha256).hexdigest()
         if compare_digest(exp_hex, sig_hex):
             return True, "ok"
@@ -210,21 +183,20 @@ class SignerService:
     def bootstrap_verification(
         self,
         service_name: str,
-        token: str,  # Authorization: Bearer <token>
+        token: str,
         ts: int,
         nonce: str,
-        signature: str,  # e.g. sha256=...
+        signature: str,  # "sha256=<hex>"
         body: bytes = b"",
         ts_window: int = 60,
     ) -> tuple[bool, str]:
-        # 1) timestamp window
-        if not ts or not isinstance(ts, int):
+        # 1) timestamp (int) e finestra
+        if not (isinstance(ts, int)):
             return False, "missing timestamp"
-
         if not self._verify_ts_window(ts, ts_window):
             return False, "timestamp window"
 
-        # 2) anti-replay for service_name
+        # 2) anti-replay per service_name
         if not nonce:
             return False, "missing nonce"
         try:
@@ -232,17 +204,16 @@ class SignerService:
         except IntegrityError:
             return False, "replay"
 
-        # 3) signature format
+        # 3) formato firma: "sha256=<hex>"
         if not (
             isinstance(signature, str)
             and signature[:7].lower() == "sha256="
             and len(signature) > 7
         ):
             return False, "bad signature format"
-
         sig_hex = signature[7:].lower()
 
-        # 4) HMAC verification: key = Bearer token
+        # 4) HMAC con bootstrap token
         key_bytes = token_to_bytes(token)
         msg = f"{ts}.{nonce}".encode() + (body or b"")
         exp_hex = new(key_bytes, msg, sha256).hexdigest()

@@ -1,59 +1,109 @@
-from typing import Any
 from app.common.default.globals import (
-    MICROSERVICE_INSTANCE_NOT_FOUND,
+    MICROSERVICE_INVALID_NONCE,
     MICROSERVICE_INVALID_SIGNATURE,
+    MICROSERVICE_INVALID_TIMESTAMP,
+    MICROSERVICE_INVALID_KID,
+    MICROSERVICE_INVALID_INSTANCE,
 )
-from app.services.services import ServicesService
 from django.http import HttpRequest
 from app.common.default.standard_response import standard_error
 from app.common.default.types import EndPointResponse
 from app.middlewares.default.pipeline import NextPipe
 from app.services.secrets import SecretsService
 from app.services.signer import SignerService
+from app.services.services import ServicesService
 
 
-def instance_verification(
-    request: HttpRequest, data: Any, next: NextPipe
+def instance_verification_mw(
+    request: HttpRequest, data, next: NextPipe
 ) -> EndPointResponse:
     """
-    Resolve a sequence of route handlers.
+    HMAC verification for calls from a registered instance (client -> ledger).
+    Requires headers:
+      - X-Timestamp: <epoch int>
+      - X-Nonce: <hex>
+      - X-Key-Id: <kid>
+      - X-Signature: sha256=<hex>
+      - (optional but useful) X-Instance-Id: <uuid> if the endpoint does not have it in the body/path
     """
-    ts = int(request.headers["X-Timestamp"])
-    nonce = request.headers["X-Nonce"]
-    kid = request.headers.get("X-Key-Id", "")
-    sig = request.headers["X-Signature"]
-    instance_id = request.headers["X-Instance-Id"]
-    secrets_svc = SecretsService(
-        name=data.service_name,
-        ttl_s=data.ttl_s,
-        region=data.region,
-    )
-    signer_svc = SignerService(
-        secrets=secrets_svc,
-    )
-    service_svc = ServicesService(
-        secrets=secrets_svc,
-        signer=signer_svc,
-    )
-    instance = service_svc.get_service_instance_by_id(instance_id)
-    if instance is None:
+    # Timestamp
+    ts_raw = request.headers.get("X-Timestamp")
+    try:
+        ts = int(ts_raw or "")
+    except (TypeError, ValueError):
         return standard_error(
-            status_code=404,
-            code=MICROSERVICE_INSTANCE_NOT_FOUND,
-            message="Service instance not found",
-            dev="Service instance not found",
+            status_code=400,
+            code=MICROSERVICE_INVALID_TIMESTAMP,
+            message="Invalid timestamp",
+            dev=f"Invalid X-Timestamp: {ts_raw!r}",
         )
-    service = instance.service
-    ok, msg = signer_svc.instance_verification(
-        service=service,
+
+    # Nonce
+    nonce = request.headers.get("X-Nonce")
+    if not nonce:
+        return standard_error(
+            status_code=400,
+            code=MICROSERVICE_INVALID_NONCE,
+            message="Invalid nonce",
+            dev="Missing X-Nonce",
+        )
+
+    # Key ID (mandatory in strict mode)
+    kid = request.headers.get("X-Key-Id")
+    if not kid:
+        return standard_error(
+            status_code=400,
+            code=MICROSERVICE_INVALID_KID,
+            message="Invalid kid",
+            dev="Missing X-Key-Id",
+        )
+
+    # Signature
+    sig = request.headers.get("X-Signature")
+    if not sig:
+        return standard_error(
+            status_code=400,
+            code=MICROSERVICE_INVALID_SIGNATURE,
+            message="Invalid signature",
+            dev="Missing X-Signature",
+        )
+
+    # Find the instance: header > body (schema) > (optional) query
+    instance_id = (
+        request.headers.get("X-Instance-Id")
+        or getattr(data, "instance_id", None)
+        or request.GET.get("instance_id")
+    )
+    if not instance_id:
+        return standard_error(
+            status_code=400,
+            code=MICROSERVICE_INVALID_INSTANCE,
+            message="Missing instance id",
+            dev="Provide X-Instance-Id header or body/query 'instance_id'",
+        )
+
+    signer = SignerService(secrets=SecretsService)
+    svc = ServicesService(secrets=SecretsService, signer=signer)
+
+    inst = svc.get_service_instance_by_id(instance_id)
+    if inst is None:
+        return standard_error(
+            status_code=400,
+            code=MICROSERVICE_INVALID_INSTANCE,
+            message="Unknown instance",
+            dev=f"ServiceInstance {instance_id} not found",
+        )
+
+    ok, msg = signer.instance_verification(
+        service=inst.service,
         ts=ts,
         nonce=nonce,
-        sig=sig,
+        signature=sig,
         kid=kid,
-        service_instance=instance,
-        body=request.body or b"",
-        method=(request.method or "").upper(),
-        path_q=request.get_full_path(),
+        service_instance=inst,
+        body=(request.body or b""),
+        method=request.method or "GET",
+        path_q=request.get_full_path(),  # includes the query string
         ts_window=300,
     )
     if not ok:
@@ -64,6 +114,4 @@ def instance_verification(
             dev=msg,
         )
 
-    response = next()
-    print("Verify call done")
-    return response
+    return next()

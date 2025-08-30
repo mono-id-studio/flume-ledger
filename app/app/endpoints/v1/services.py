@@ -13,7 +13,6 @@ from app.schemas.req.services import RegisterRequest
 from app.schemas.res.services import RegisterResponse
 from django.db.transaction import atomic
 from django.conf import settings
-from pydantic import AnyHttpUrl
 
 
 def register_ep(request: HttpRequest, data: RegisterRequest) -> EndPointResponse:

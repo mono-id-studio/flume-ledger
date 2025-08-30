@@ -44,7 +44,7 @@ class ServicesServiceProtocol(Protocol):
     ) -> ServiceInstance | None: ...
 
     def create_service_instance(
-        self, srv: Service, data: RegisterRequest
+        self, srv: Service, data: RegisterRequest, health_url: str
     ) -> ServiceInstance: ...
 
     def get_or_create_service_instance(
@@ -71,7 +71,7 @@ class ServicesService:
         return obj
 
     def get_service_instance_by_id(self, instance_id: str) -> ServiceInstance | None:
-        return ServiceInstance.objects.get(instance_id=instance_id)
+        return ServiceInstance.objects.filter(instance_id=instance_id).first()
 
     def get_same_instance_after_reboot(
         self, service: Service, node_id: str, task_slot: int
