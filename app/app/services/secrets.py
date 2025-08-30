@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from typing import Dict, Tuple, Protocol, runtime_checkable
 from datetime import datetime, timedelta
 from json import loads
-from base64 import b64decode
 from boto3 import client
 from django.conf import settings
 from app.models.services import Service
+from app.common.default.security import token_to_bytes
 
 
 @dataclass
@@ -22,8 +22,6 @@ class SecretObject:
 @runtime_checkable
 class SecretsServiceProtocol(Protocol):
     @staticmethod
-    def token_to_bytes(token: str) -> bytes: ...
-    @staticmethod
     def get(
         service: Service, ttl_s: int = 300, region: str | None = None
     ) -> SecretObject | None: ...
@@ -35,12 +33,6 @@ class SecretsServiceProtocol(Protocol):
 
 class SecretsService:
     cache: Dict[str, SecretObject] = {}
-
-    @staticmethod
-    def token_to_bytes(token: str) -> bytes:
-        if token.startswith("base64:"):
-            return b64decode(token.split(":", 1)[1])
-        return token.encode("utf-8")
 
     @staticmethod
     def get(
@@ -77,11 +69,11 @@ class SecretsService:
         val = SecretsService.get(service)
         if not val:
             return None
-        return val.kid, SecretsService.token_to_bytes(val.token)
+        return val.kid, token_to_bytes(val.token)
 
     @staticmethod
     def get_previous(service: Service) -> Tuple[str, bytes] | None:
         val = SecretsService.get(service)
         if not val or not (val.prev_kid and val.prev_token):
             return None
-        return val.prev_kid, SecretsService.token_to_bytes(val.prev_token)
+        return val.prev_kid, token_to_bytes(val.prev_token)
