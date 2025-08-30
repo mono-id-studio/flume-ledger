@@ -88,7 +88,7 @@ def standard_response(status_code: int | HTTPStatus, data: T, message: str) -> R
 
 
 def standard_error(
-    status_code: int | HTTPStatus, message: str, code: int, dev: str
+    status_code: int | HTTPStatus, code: int, dev: str, message: str = ""
 ) -> Response:
     """
     Create a standard error object.
