@@ -1,34 +1,36 @@
-from typing import Dict
+from datetime import datetime
+from typing import Dict, Tuple
 from app.models.services import Service
 from django.conf import settings
 from time import time
 from boto3 import client
 from json import loads
 from typing import Protocol
-
+from base64 import b64decode
 
 class SecretsServiceProtocol(Protocol):
-    def get(self, service: Service) -> dict | None: ...
+    def get_current(self, service: Service) -> Tuple[str, bytes] | None: ...
+    def get_previous(self, service: Service) -> Tuple[str, bytes] | None: ...
 
+
+class SecretObject:
+    token: str,
+    kid: str,
+    prev_token: str,
+    prev_kid: str,
+    rotated_at: datetime
+    accept_prev_until: datetime
 
 class SecretsService:
-    CACHES: Dict[str, "SecretsService"] = {}
+    cache: Dict[str, "SecretObject"] = {}
 
-    _val: Dict | None = None
-    _exp = 0.0
-
-    name: str
-    ttl_s: int
-    region: str
-
-    def __init__(self, name: str, ttl_s: int = 300, region: str | None = None):
-        self.name, self.ttl_s, self.region = (
-            name,
-            ttl_s,
-            region or settings.MS_REGION,
+    @staticmethod
+    def token_to_bytes(token: str) -> bytes:
+        return (
+            b64decode(token.split(":", 1)[1])
+            if token.startswith("base64:")
+            else token.encode("utf-8")
         )
-        self._val: Dict | None = None
-        self._exp = 0.0
 
     @staticmethod
     def _get_cache_for_service(service: Service) -> "SecretsService":
@@ -44,15 +46,42 @@ class SecretsService:
             )
         return SecretsService.CACHES[service.bootstrap_secret_ref]
 
-    def get(self, service: Service) -> dict | None:
+    @staticmethod
+    def get(service: Service, ttl_s: int = 300, region: str | None = None) -> SecretObject | None:
         """
         Returns the secrets for the given service.
         """
-        now = time()
-        if self._val is None or now >= self._exp:
-            sm = client("secretsmanager", region_name=self.region)
-            resp = sm.get_secret_value(SecretId=self.name)
+        if service.bootstrap_secret_ref in SecretsService.cache:
+            return SecretsService.cache[service.bootstrap_secret_ref]
+        else:
+            
+            sm = client("secretsmanager", region_name=region or settings.MS_REGION)
+            resp = sm.get_secret_value(SecretId=service.bootstrap_secret_ref)
             raw = resp.get("SecretString") or resp["SecretBinary"].decode()
-            self._val = loads(raw)  # es. {"kid":"v1","token":"base64..."}
-            self._exp = now + self.ttl_s
-        return self._val
+            val = loads(raw)  # es. {"kid":"v1","token":"base64..."}
+            now = time()
+            SecretsService.cache[service.bootstrap_secret_ref] = SecretObject(
+                token=val["token"],
+                kid=val["kid"],
+                prev_token=val["prev_token"],
+                prev_kid=val["prev_kid"],
+                rotated_at=now,
+                accept_prev_until=now + ttl_s,
+            )
+            return val
+
+    @staticmethod
+    def get_current(service: Service) -> Tuple[str, bytes] | None:
+        """
+        Returns the secrets for the given service.
+        """
+        val: SecretObject = SecretsService.get(service)
+        return val.kid, SecretsService.token_to_bytes(val.token)
+
+    @staticmethod
+    def get_previous(service: Service) -> Tuple[str, bytes] | None:
+        """
+        Returns the previous secrets for the given service.
+        """
+        val: SecretObject = SecretsService.get(service)
+        return val.prev_kid, SecretsService.token_to_bytes(val.prev_token)
