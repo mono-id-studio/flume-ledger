@@ -45,6 +45,8 @@ class SecretsService:
 
         sm = client("secretsmanager", region_name=region or settings.MS_REGION)
         resp = sm.get_secret_value(SecretId=ref)
+        if not resp:
+            return None
         raw = resp.get("SecretString") or resp["SecretBinary"].decode()
         data = loads(
             raw
