@@ -16,3 +16,9 @@
 
 **/requirements-dev.txt
 **/requirements.txt
+**/coverage
+
+# Coverage reports
+**/.coverage
+*.coverage.xml
+htmlcov/
