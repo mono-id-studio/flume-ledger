@@ -38,9 +38,7 @@ class SecretsService:
     def get(
         service: Service, ttl_s: int = 300, region: str | None = None
     ) -> SecretObject | None:
-        ref = service.bootstrap_secret_ref
-        if not ref:
-            return None
+        ref: str = service.bootstrap_secret_ref
 
         if ref in SecretsService.cache:
             return SecretsService.cache[ref]
