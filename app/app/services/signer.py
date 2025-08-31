@@ -112,8 +112,8 @@ class SignerService:
         service: Service,
         ts: int,
         nonce: str,
-        signature: str,  # atteso: "sha256=<hex>"
-        kid: str,  # OBBLIGATORIO (strict)
+        signature: str,  # expected: "sha256=<hex>"
+        kid: str,  # required (strict)
         service_instance: ServiceInstance,
         body: bytes = b"",
         method: str = "GET",
@@ -121,8 +121,6 @@ class SignerService:
         ts_window: int = 300,
     ) -> tuple[bool, str]:
         # 0) sanity
-        if not (isinstance(ts, int)):
-            return False, "missing timestamp"
         if not nonce:
             return False, "missing nonce"
         if not kid:
@@ -195,8 +193,6 @@ class SignerService:
         ts_window: int = 60,
     ) -> tuple[bool, str]:
         # 1) timestamp (int) e finestra
-        if not (isinstance(ts, int)):
-            return False, "missing timestamp"
         if not self._verify_ts_window(ts, ts_window):
             return False, "timestamp window"
 

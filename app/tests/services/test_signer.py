@@ -7,6 +7,8 @@ from app.common.default.security import token_to_bytes
 from app.services.secrets import SecretObject
 from hmac import new
 from hashlib import sha256
+import hmac
+from uuid import uuid4
 
 
 @pytest.fixture
@@ -110,22 +112,81 @@ def test_signed_headers_for(
 
 @pytest.mark.django_db
 def test_bootstrap_verification_happy_path(signer: SignerService):
-    """
-    Tests the successful verification of a bootstrap request.
-    """
     service_name = "test-service"
     token = "bootstrap-token"
     ts = int(time.time())
-    nonce = "test-nonce"
-    body = b'{"data": "payload"}'
-    # Correct signature generated for the test
-    signature = (
-        "sha256=2b1e2e463b3337912387a38545231e8a9d1927891823791837198a4d19382910"
+    nonce = uuid4().hex  # nonce unico per evitare replay tra esecuzioni
+    body = b'{"data":"payload"}'
+
+    # genera la firma come fa la funzione
+    key = token_to_bytes(token)  # "bootstrap-token".encode("utf-8")
+    msg = f"{ts}.{nonce}".encode() + body
+    signature = "sha256=" + hmac.new(key, msg, sha256).hexdigest()
+
+    ok, msg1 = signer.bootstrap_verification(
+        service_name=service_name,
+        token=token,
+        ts=ts,
+        nonce=nonce,
+        signature=signature,
+        body=body,
+        ts_window=60,
     )
 
-    signer.bootstrap_verification(
-        service_name, token, ts, nonce, signature, body=body, ts_window=60
+    assert ok is True
+    assert msg1 == "ok"
+
+    ok, msg1 = signer.bootstrap_verification(
+        service_name=service_name,
+        token=token,
+        ts=ts + 301,
+        nonce=nonce,
+        signature=signature,
+        body=body,
+        ts_window=60,
     )
+
+    assert ok is False
+    assert msg1 == "timestamp window"
+
+    ok, msg1 = signer.bootstrap_verification(
+        service_name=service_name,
+        token=token,
+        ts=ts,
+        nonce="",
+        signature=signature,
+        body=body,
+        ts_window=60,
+    )
+
+    assert ok is False
+    assert msg1 == "missing nonce"
+
+    ok, msg1 = signer.bootstrap_verification(
+        service_name=service_name,
+        token=token,
+        ts=ts,
+        nonce=uuid4().hex,
+        signature="",
+        body=body,
+        ts_window=60,
+    )
+
+    assert ok is False
+    assert msg1 == "bad signature format"
+
+    ok, msg1 = signer.bootstrap_verification(
+        service_name=service_name,
+        token=token,
+        ts=ts,
+        nonce=uuid4().hex,
+        signature="sha256=",
+        body=body,
+        ts_window=60,
+    )
+
+    assert ok is False
+    assert msg1 == "bad signature format"
 
 
 @pytest.mark.django_db
@@ -173,6 +234,78 @@ def test_instance_verification_happy_path(
     )
     assert ok is True
     assert msg1 == "ok"
+
+    ok, msg1 = signer.instance_verification(
+        service=service,
+        ts=ts,
+        nonce="",
+        signature=signature,
+        kid=kid,
+        service_instance=instance,
+        method=method,
+        path_q=path_q,
+        body=body,
+    )
+    assert ok is False
+    assert msg1 == "missing nonce"
+
+    ok, msg1 = signer.instance_verification(
+        service=service,
+        ts=ts,
+        nonce=nonce,
+        signature=signature,
+        kid="",
+        service_instance=instance,
+        method=method,
+        path_q=path_q,
+        body=body,
+    )
+
+    assert ok is False
+    assert msg1 == "missing kid"
+
+    ok, msg1 = signer.instance_verification(
+        service=service,
+        ts=ts + 301,
+        nonce=nonce,
+        signature=signature,
+        kid=kid,
+        service_instance=instance,
+        method=method,
+        path_q=path_q,
+        body=body,
+    )
+
+    assert ok is False
+    assert msg1 == "timestamp window"
+
+    ok, msg1 = signer.instance_verification(
+        service=service,
+        ts=ts,
+        nonce=uuid4().hex,
+        signature="",
+        kid=kid,
+        service_instance=instance,
+        method=method,
+        path_q=path_q,
+        body=body,
+    )
+    assert ok is False
+    assert msg1 == "bad signature format"
+
+    ok, msg1 = signer.instance_verification(
+        service=service,
+        ts=ts,
+        nonce=uuid4().hex,  #
+        signature="sha256=",
+        kid=kid,
+        service_instance=instance,
+        method=method,
+        path_q=path_q,
+        body=body,
+    )
+    assert ok is False
+    assert msg1 == "bad signature format"
 
 
 @pytest.mark.django_db
