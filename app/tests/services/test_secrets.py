@@ -121,3 +121,15 @@ def test_get_previous_not_available(service_factory, mock_boto_client):
     service = service_factory()
 
     assert SecretsService.get_previous(service) is None
+
+
+@pytest.mark.django_db
+def test_get_current_with_no_found_secret_object(service_factory, mock_boto_client):
+    """
+    Tests that get_current returns None when the secret object is not found.
+    """
+    service = service_factory()
+    secret_data = {"token": "dG9rZW4=", "kid": "v1"}
+    setup_secret(mock_boto_client, secret_data)
+    mock_boto_client.get_secret_value.return_value = None
+    assert SecretsService.get_current(service) is None

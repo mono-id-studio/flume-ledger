@@ -6,6 +6,8 @@ import pytest
 from json import loads
 from django.http import JsonResponse
 from app.middlewares.bootstrap_verification import bootstrap_verification_mw
+from app.middlewares.default.middleware import logger_mw
+from app.middlewares.default.pipeline import pipeline
 from app.schemas.req.services import RegisterRequest
 from app.models.services import InboundNonceBootstrap
 from app.common.default.globals import (
@@ -214,3 +216,35 @@ def test_bootstrap_middleware_replay_nonce(rf):
     resp2 = bootstrap_verification_mw(req2, data, lambda: JsonResponse({}, status=200))
     assert resp2.status_code == 401
     assert json.loads(resp2.content)["code"] == MICROSERVICE_INVALID_SIGNATURE
+
+
+def test_logger_middleware(rf):
+    """
+    Tests that the logger middleware logs the request and response.
+    """
+    req = rf.get("/flume/register", content_type="application/json")
+    resp = logger_mw(req, data={}, next=_next_ok)
+    assert resp.status_code == 200
+    assert resp.content == b'{"ok": true}'
+
+
+def test_pipeline(rf):
+    """
+    Tests that the pipeline middleware logs the request and response.
+    """
+    req = rf.get("/flume/register", content_type="application/json")
+    resp = pipeline(
+        req,
+        logger_mw,
+        endpoint=lambda req, data: JsonResponse({"ok": True}, status=200),
+    )
+    assert resp.status_code == 200
+    assert resp.content == b'{"ok": true}'
+
+    resp = pipeline(
+        req,
+        logger_mw,
+        endpoint=lambda req: JsonResponse({"ok": True}, status=200),
+    )
+    assert resp.status_code == 200
+    assert resp.content == b'{"ok": true}'
