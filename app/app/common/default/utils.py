@@ -233,18 +233,18 @@ def paginate_query_set(
     return subset, paginator.num_pages
 
 
-def encode_argument(argument: str) -> str:
+def encode_argument(argument: str, safe: str = "/") -> str:
     """
     Encode an argument.
     """
-    return quote(argument)
+    return quote(argument, safe=safe)
 
 
-def decode_argument(argument: str) -> str:
+def decode_argument(argument: str, encoding: str = "utf-8") -> str:
     """
     Decode an argument.
     """
-    return unquote(argument)
+    return unquote(argument, encoding=encoding)
 
 
 def get_image_format_from_extension(file_extension):
