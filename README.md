@@ -4,6 +4,29 @@
 
 The backend development is a complex process. It involves a lot of components and services. This is a template for a microservice built with Python and Django Ninja with the support of the Devcontainers.
 
+## Requirements
+
+To generate the requirements-dev.txt file, you can use the following command:
+```bash
+pip-compile requirements-dev.in
+```
+
+The requirements-dev.txt contains the development requirements for the project, but it also references the requirements.txt file for the runtime requirements.
+
+For production, you can use the following command:
+```bash
+pip-compile requirements.in
+```
+
+The requirements.txt contains the production requirements for the project.
+
+You can also use the command:
+
+```bash
+pip-review --local
+```
+to check for updates of the dependencies.
+
 ## Features
 
 This template includes the following features:
