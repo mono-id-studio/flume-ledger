@@ -5,32 +5,65 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('app', '0002_alter_inboundnounce_service_instance'),
+        ("app", "0002_alter_inboundnounce_service_instance"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='InboundNonce',
+            name="InboundNonce",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('nonce', models.CharField(db_index=True, max_length=64)),
-                ('service', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='register_nonces', to='app.service')),
-                ('service_instance', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='nonces', to='app.serviceinstance')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("nonce", models.CharField(db_index=True, max_length=64)),
+                (
+                    "service",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="register_nonces",
+                        to="app.service",
+                    ),
+                ),
+                (
+                    "service_instance",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="nonces",
+                        to="app.serviceinstance",
+                    ),
+                ),
             ],
         ),
         migrations.DeleteModel(
-            name='InboundNounce',
+            name="InboundNounce",
         ),
         migrations.AddConstraint(
-            model_name='inboundnonce',
-            constraint=models.UniqueConstraint(condition=models.Q(('service_instance__isnull', False)), fields=('service_instance', 'nonce'), name='uniq_instance_nonce'),
+            model_name="inboundnonce",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("service_instance__isnull", False)),
+                fields=("service_instance", "nonce"),
+                name="uniq_instance_nonce",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='inboundnonce',
-            constraint=models.UniqueConstraint(condition=models.Q(('service__isnull', False)), fields=('service', 'nonce'), name='uniq_service_nonce'),
+            model_name="inboundnonce",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("service__isnull", False)),
+                fields=("service", "nonce"),
+                name="uniq_service_nonce",
+            ),
         ),
     ]
