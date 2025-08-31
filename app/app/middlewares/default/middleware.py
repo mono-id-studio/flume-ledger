@@ -5,7 +5,7 @@ from app.common.default.types import EndPointResponse
 from app.middlewares.default.pipeline import NextPipe
 
 
-def logger(request: HttpRequest, data: Any, next: NextPipe) -> EndPointResponse:
+def logger_mw(request: HttpRequest, data: Any, next: NextPipe) -> EndPointResponse:
     """
     Resolve a sequence of route handlers.
     """
