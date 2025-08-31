@@ -112,7 +112,7 @@ class SignerService:
         service: Service,
         ts: int,
         nonce: str,
-        sig: str,  # atteso: "sha256=<hex>"
+        signature: str,  # atteso: "sha256=<hex>"
         kid: str,  # OBBLIGATORIO (strict)
         service_instance: ServiceInstance,
         body: bytes = b"",
@@ -141,9 +141,13 @@ class SignerService:
             return False, "replay"
 
         # 3) formato firma: "sha256=<hex>"
-        if not (isinstance(sig, str) and sig[:7].lower() == "sha256=" and len(sig) > 7):
+        if not (
+            isinstance(signature, str)
+            and signature[:7].lower() == "sha256="
+            and len(signature) > 7
+        ):
             return False, "bad signature format"
-        sig_hex = sig[7:].lower()
+        sig_hex = signature[7:].lower()
 
         # 4) messaggio firmato
         m = (method or "GET").upper()
