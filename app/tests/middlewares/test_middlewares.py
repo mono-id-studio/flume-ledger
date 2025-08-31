@@ -3,11 +3,15 @@ import time
 import hmac
 import hashlib
 import pytest
+from json import loads
 from django.http import JsonResponse
 from app.middlewares.bootstrap_verification import bootstrap_verification_mw
 from app.schemas.req.services import RegisterRequest
 from app.models.services import InboundNonceBootstrap
-from app.common.default.globals import MICROSERVICE_INVALID_SIGNATURE
+from app.common.default.globals import (
+    MICROSERVICE_INVALID_AUTH,
+    MICROSERVICE_INVALID_SIGNATURE,
+)
 
 
 def sign_bootstrap(token: str, ts: int, nonce: str, body: bytes) -> str:
@@ -54,13 +58,39 @@ def test_bootstrap_middleware_happy_path(rf, monkeypatch):
 
     data = RegisterRequest(**body_dict)
 
-    # esegui
+    # execute
     resp = bootstrap_verification_mw(req, data, _next_ok)
     assert resp.status_code == 200
     # nonce registrato anti-replay
     assert InboundNonceBootstrap.objects.filter(
         service_name="user-svc", nonce=nonce
     ).exists()
+
+    # no auth
+
+    req.headers = {
+        "X-Timestamp": str(ts),
+        "X-Nonce": nonce,
+        "X-Signature": sig,
+    }
+    resp_no_auth = bootstrap_verification_mw(req, data, _next_ok)
+    json_data = loads(resp_no_auth.content)
+    assert resp_no_auth.status_code == 400
+    assert json_data["code"] == MICROSERVICE_INVALID_AUTH
+    assert json_data["message"] == "Invalid auth header"
+    assert json_data["dev"] == ""
+
+    req.headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Timestamp": str(ts),
+        "X-Nonce": nonce,
+    }
+    resp_no_auth = bootstrap_verification_mw(req, data, _next_ok)
+    json_data = loads(resp_no_auth.content)
+    assert resp_no_auth.status_code == 400
+    assert json_data["code"] == MICROSERVICE_INVALID_SIGNATURE
+    assert json_data["message"] == "Invalid signature"
+    assert json_data["dev"] == ""
 
 
 @pytest.mark.django_db
