@@ -1,4 +1,3 @@
-from typing import Any
 import pytest
 from django.http import HttpRequest
 from types import SimpleNamespace
@@ -137,7 +136,7 @@ def test_select_query_set(service_factory):
     """
     Tests selecting specific fields from a QuerySet.
     """
-    service = service_factory(name="my-service")
+    service_factory(name="my-service")
     qs = Service.objects.all()
     selected_qs = utils.select_query_set(qs, "name")
     assert len(selected_qs) == 1
