@@ -121,4 +121,11 @@ if not DEBUG:
 
 
 # ── MICROSERVICES ───────────────────────────────────────────────────────────────────────
+
 MS_REGION = env("MS_REGION", default="eu-central-1")
+
+# -- REDIS ───────────────────────────────────────────────────────────────────────
+REDIS_HOST = env("REDIS_HOST", default="localhost")
+REDIS_PORT = env("REDIS_PORT", default="6379")
+REDIS_DB = env("REDIS_DB", default=0)
+REDIS_PASSWORD = env("REDIS_PASSWORD", default="")

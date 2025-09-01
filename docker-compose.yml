@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   app:
+    container_name: flume-ledger-app
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile
@@ -9,3 +10,29 @@ services:
     volumes:
       - .:/workspaces/flume-ledger:cached
     command: sleep infinity 
+    depends_on:
+      - redis
+    networks:
+      - flume-net
+
+  redis:
+    image: redis:7
+    container_name: flume-redis-cache
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - flume-net
+
+volumes:
+  redis_data:
+
+networks:
+  flume-net:
