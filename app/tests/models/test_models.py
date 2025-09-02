@@ -5,6 +5,7 @@ import pytest
 from django.forms import model_to_dict
 
 from app.models.services import Service, ServiceInstance
+from app.models.events import EventDefinition, Subscription
 
 
 @pytest.mark.django_db
@@ -108,3 +109,50 @@ def test_registry_state_not_found():
         pkid=2,
     )
     assert reg.current() == 0
+
+
+@pytest.mark.django_db
+def test_event_definition_str():
+    svc = Service.objects.create(
+        name="billing-svc",
+        bootstrap_secret_ref="secret/ref",
+    )
+    event = EventDefinition.objects.create(
+        publisher=svc,
+        event_key="order.created",
+        major=1,
+        payload_schema={
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+            },
+        },
+        version_hash="1234567890",
+    )
+    assert str(event) == "billing-svc:order.created@v1"
+
+
+@pytest.mark.django_db
+def test_subscription_str():
+    svc = Service.objects.create(
+        name="billing-svc",
+        bootstrap_secret_ref="secret/ref",
+    )
+    event = EventDefinition.objects.create(
+        publisher=svc,
+        event_key="order.created",
+        major=1,
+        payload_schema={
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+            },
+        },
+        version_hash="1234567890",
+    )
+    subscription = Subscription.objects.create(
+        event=event,
+        subscriber=svc,
+        webhook_url="http://10.0.0.1:8080/webhook",
+    )
+    assert str(subscription) == "billing-svc -> billing-svc:order.created@v1"
