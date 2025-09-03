@@ -1,4 +1,3 @@
-from app.models.events import EventDefinition
 import pytest
 from django.test import RequestFactory
 from app.models.services import Service, ServiceInstance
